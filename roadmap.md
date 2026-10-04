@@ -20,3 +20,10 @@
 
 ## Phase 4 — Docs
 - [x] README covering architecture, MCP exposure, Docker/CI notes
+
+## Phase 5 — Adaptable company data
+- [ ] Connect or import a company database
+- [ ] Inspect and map each source schema without changing the source
+- [ ] Configure company-specific topics, terminology, permissions, and policies
+- [ ] Generate safe read-only tools for approved tables and fields
+- [ ] Add connection management, schema refresh, and validation screens
