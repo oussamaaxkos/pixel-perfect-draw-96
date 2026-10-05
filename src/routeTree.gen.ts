@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as EvaluationRouteImport } from './routes/evaluation'
@@ -24,12 +26,17 @@ import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as RunsRouteImport } from './routes/runs'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ToolsRouteImport } from './routes/tools'
+import { Route as AuthenticatedDataSourcesRouteImport } from './routes/_authenticated/data-sources'
 import { Route as RunsIndexRouteImport } from './routes/runs.index'
 import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
@@ -40,6 +47,11 @@ const ApprovalsRoute = ApprovalsRouteImport.update({
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CopilotRoute = CopilotRouteImport.update({
@@ -102,6 +114,12 @@ const ToolsRoute = ToolsRouteImport.update({
   path: '/tools',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDataSourcesRoute =
+  AuthenticatedDataSourcesRouteImport.update({
+    id: '/data-sources',
+    path: '/data-sources',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const RunsIndexRoute = RunsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -117,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/approvals': typeof ApprovalsRoute
   '/audit': typeof AuditRoute
+  '/auth': typeof AuthRoute
   '/copilot': typeof CopilotRoute
   '/customers': typeof CustomersRoute
   '/evaluation': typeof EvaluationRoute
@@ -129,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/runs': typeof RunsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/tools': typeof ToolsRoute
+  '/data-sources': typeof AuthenticatedDataSourcesRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/runs/': typeof RunsIndexRoute
 }
@@ -136,6 +156,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/approvals': typeof ApprovalsRoute
   '/audit': typeof AuditRoute
+  '/auth': typeof AuthRoute
   '/copilot': typeof CopilotRoute
   '/customers': typeof CustomersRoute
   '/evaluation': typeof EvaluationRoute
@@ -147,14 +168,17 @@ export interface FileRoutesByTo {
   '/prompts': typeof PromptsRoute
   '/settings': typeof SettingsRoute
   '/tools': typeof ToolsRoute
+  '/data-sources': typeof AuthenticatedDataSourcesRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/runs': typeof RunsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/approvals': typeof ApprovalsRoute
   '/audit': typeof AuditRoute
+  '/auth': typeof AuthRoute
   '/copilot': typeof CopilotRoute
   '/customers': typeof CustomersRoute
   '/evaluation': typeof EvaluationRoute
@@ -167,6 +191,7 @@ export interface FileRoutesById {
   '/runs': typeof RunsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/tools': typeof ToolsRoute
+  '/_authenticated/data-sources': typeof AuthenticatedDataSourcesRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/runs/': typeof RunsIndexRoute
 }
@@ -176,6 +201,7 @@ export interface FileRouteTypes {
     | '/'
     | '/approvals'
     | '/audit'
+    | '/auth'
     | '/copilot'
     | '/customers'
     | '/evaluation'
@@ -188,6 +214,7 @@ export interface FileRouteTypes {
     | '/runs'
     | '/settings'
     | '/tools'
+    | '/data-sources'
     | '/runs/$runId'
     | '/runs/'
   fileRoutesByTo: FileRoutesByTo
@@ -195,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/approvals'
     | '/audit'
+    | '/auth'
     | '/copilot'
     | '/customers'
     | '/evaluation'
@@ -206,13 +234,16 @@ export interface FileRouteTypes {
     | '/prompts'
     | '/settings'
     | '/tools'
+    | '/data-sources'
     | '/runs/$runId'
     | '/runs'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/approvals'
     | '/audit'
+    | '/auth'
     | '/copilot'
     | '/customers'
     | '/evaluation'
@@ -225,14 +256,17 @@ export interface FileRouteTypes {
     | '/runs'
     | '/settings'
     | '/tools'
+    | '/_authenticated/data-sources'
     | '/runs/$runId'
     | '/runs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ApprovalsRoute: typeof ApprovalsRoute
   AuditRoute: typeof AuditRoute
+  AuthRoute: typeof AuthRoute
   CopilotRoute: typeof CopilotRoute
   CustomersRoute: typeof CustomersRoute
   EvaluationRoute: typeof EvaluationRoute
@@ -256,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approvals': {
       id: '/approvals'
       path: '/approvals'
@@ -268,6 +309,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/copilot': {
@@ -354,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/data-sources': {
+      id: '/_authenticated/data-sources'
+      path: '/data-sources'
+      fullPath: '/data-sources'
+      preLoaderRoute: typeof AuthenticatedDataSourcesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/runs/': {
       id: '/runs/'
       path: '/'
@@ -371,6 +426,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDataSourcesRoute: typeof AuthenticatedDataSourcesRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDataSourcesRoute: AuthenticatedDataSourcesRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 interface RunsRouteChildren {
   RunsRunIdRoute: typeof RunsRunIdRoute
   RunsIndexRoute: typeof RunsIndexRoute
@@ -385,8 +451,10 @@ const RunsRouteWithChildren = RunsRoute._addFileChildren(RunsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ApprovalsRoute: ApprovalsRoute,
   AuditRoute: AuditRoute,
+  AuthRoute: AuthRoute,
   CopilotRoute: CopilotRoute,
   CustomersRoute: CustomersRoute,
   EvaluationRoute: EvaluationRoute,
