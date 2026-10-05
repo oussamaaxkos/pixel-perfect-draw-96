@@ -317,6 +317,36 @@ export type Database = {
         }
         Relationships: []
       }
+      company_workspaces: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          status: string
+          terminology: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          status?: string
+          terminology?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          status?: string
+          terminology?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           company_id: string | null
@@ -360,6 +390,65 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_sources: {
+        Row: {
+          activated_at: string | null
+          connection_config: Json
+          created_at: string
+          created_by: string | null
+          credential_iv: string | null
+          encrypted_credentials: string | null
+          id: string
+          last_discovered_at: string | null
+          last_error: string | null
+          name: string
+          source_type: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          connection_config?: Json
+          created_at?: string
+          created_by?: string | null
+          credential_iv?: string | null
+          encrypted_credentials?: string | null
+          id?: string
+          last_discovered_at?: string | null
+          last_error?: string | null
+          name: string
+          source_type: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          connection_config?: Json
+          created_at?: string
+          created_by?: string | null
+          credential_iv?: string | null
+          encrypted_credentials?: string | null
+          id?: string
+          last_discovered_at?: string | null
+          last_error?: string | null
+          name?: string
+          source_type?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "company_workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -663,6 +752,41 @@ export type Database = {
           unnecessary_tool_rate?: number | null
         }
         Relationships: []
+      }
+      imported_rows: {
+        Row: {
+          created_at: string
+          id: number
+          row_data: Json
+          row_index: number
+          source_id: string
+          topic_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          row_data: Json
+          row_index: number
+          source_id: string
+          topic_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          row_data?: Json
+          row_index?: number
+          source_id?: string
+          topic_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imported_rows_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
@@ -969,6 +1093,41 @@ export type Database = {
         }
         Relationships: []
       }
+      schema_snapshots: {
+        Row: {
+          created_at: string
+          diff_summary: Json
+          id: string
+          schema_data: Json
+          source_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          diff_summary?: Json
+          id?: string
+          schema_data?: Json
+          source_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          diff_summary?: Json
+          id?: string
+          schema_data?: Json
+          source_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schema_snapshots_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipments: {
         Row: {
           carrier: string
@@ -1015,6 +1174,143 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_activations: {
+        Row: {
+          activated_at: string
+          activated_by: string
+          id: string
+          mapping_manifest: Json
+          snapshot_id: string
+          source_id: string
+        }
+        Insert: {
+          activated_at?: string
+          activated_by: string
+          id?: string
+          mapping_manifest: Json
+          snapshot_id: string
+          source_id: string
+        }
+        Update: {
+          activated_at?: string
+          activated_by?: string
+          id?: string
+          mapping_manifest?: Json
+          snapshot_id?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_activations_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "schema_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_activations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_fields: {
+        Row: {
+          access_level: string
+          created_at: string
+          data_type: string
+          description: string
+          display_name: string
+          id: string
+          semantic_type: string
+          source_column: string
+          topic_id: string
+        }
+        Insert: {
+          access_level?: string
+          created_at?: string
+          data_type: string
+          description?: string
+          display_name: string
+          id?: string
+          semantic_type?: string
+          source_column: string
+          topic_id: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          data_type?: string
+          description?: string
+          display_name?: string
+          id?: string
+          semantic_type?: string
+          source_column?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_fields_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "source_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_topics: {
+        Row: {
+          created_at: string
+          description: string
+          display_name: string
+          enabled: boolean
+          id: string
+          snapshot_id: string
+          source_id: string
+          source_schema: string
+          source_table: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          display_name: string
+          enabled?: boolean
+          id?: string
+          snapshot_id: string
+          source_id: string
+          source_schema?: string
+          source_table: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_name?: string
+          enabled?: boolean
+          id?: string
+          snapshot_id?: string
+          source_id?: string
+          source_schema?: string
+          source_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_topics_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "schema_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_topics_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1171,15 +1467,43 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_first_admin: { Args: never; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "operator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1306,6 +1630,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "operator", "viewer"],
+    },
   },
 } as const
