@@ -319,6 +319,7 @@ export type Database = {
       }
       company_workspaces: {
         Row: {
+          business_context: string
           created_at: string
           created_by: string | null
           id: string
@@ -328,6 +329,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_context?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -337,6 +339,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_context?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1231,6 +1234,7 @@ export type Database = {
           semantic_type: string
           source_column: string
           topic_id: string
+          unit: string
         }
         Insert: {
           access_level?: string
@@ -1242,6 +1246,7 @@ export type Database = {
           semantic_type?: string
           source_column: string
           topic_id: string
+          unit?: string
         }
         Update: {
           access_level?: string
@@ -1253,6 +1258,7 @@ export type Database = {
           semantic_type?: string
           source_column?: string
           topic_id?: string
+          unit?: string
         }
         Relationships: [
           {
@@ -1493,6 +1499,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_reviewed_source: {
+        Args: { _manifest: Json; _snapshot_id: string; _source_id: string }
+        Returns: undefined
+      }
       claim_first_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
