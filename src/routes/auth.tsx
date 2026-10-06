@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({ next: typeof search["next"] === "string" ? search["next"] : "/data-sources" }),
   head: () => ({
     meta: [
       { title: "Administrator Sign In | OpsMind AI" },
@@ -22,11 +24,19 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      const next = sessionStorage.getItem("opsmind-auth-next");
+      sessionStorage.removeItem("opsmind-auth-next");
+      void navigate({ to: next?.startsWith("/") && !next.startsWith("//") ? next : "/data-sources" });
+    });
+  }, [navigate]);
 
   async function signIn() {
     setBusy(true);
     const intended = new URLSearchParams(window.location.search).get("next");
-    sessionStorage.setItem("opsmind-auth-next", intended?.startsWith("/") ? intended : "/data-sources");
+    sessionStorage.setItem("opsmind-auth-next", intended?.startsWith("/") && !intended.startsWith("//") ? intended : "/data-sources");
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/auth",
       extraParams: { prompt: "select_account" },
