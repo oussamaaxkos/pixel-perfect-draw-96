@@ -19,8 +19,12 @@ import {
   Sun,
   Users,
   Wrench,
+  Database,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV: Array<{ group: string; items: Array<{ to: string; label: string; icon: typeof Activity }> }> = [
   {
@@ -35,6 +39,7 @@ const NAV: Array<{ group: string; items: Array<{ to: string; label: string; icon
   {
     group: "Data",
     items: [
+      { to: "/data-sources", label: "Data Sources", icon: Database },
       { to: "/customers", label: "Customers", icon: Users },
       { to: "/orders", label: "Orders", icon: Boxes },
       { to: "/knowledge", label: "Knowledge Base", icon: BookOpen },
@@ -89,6 +94,10 @@ function ThemeToggle() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [identity, setIdentity] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setIdentity(data.user?.email ?? null));
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -155,15 +164,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold">
-                MR
-              </div>
-              <div className="hidden leading-tight sm:block">
-                <p className="text-xs font-medium">Marta Rossi</p>
-                <p className="text-[10px] text-muted-foreground">Operator · Customer Ops</p>
-              </div>
-            </div>
+            {identity ? <div className="flex items-center gap-2"><span className="hidden max-w-44 truncate text-xs sm:block">{identity}</span><Button size="icon-sm" variant="ghost" title="Sign out" aria-label="Sign out" onClick={async () => { await supabase.auth.signOut(); window.location.assign("/"); }}><LogOut /></Button></div> : <Button asChild size="sm" variant="outline"><Link to="/auth" search={{ next: "/data-sources" }}>Admin sign in</Link></Button>}
           </div>
         </header>
 

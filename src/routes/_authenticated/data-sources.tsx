@@ -104,13 +104,15 @@ function DataSourcesPage() {
     try {
       const XLSX = await import("xlsx");
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
-      const sheets = workbook.SheetNames.map((name) => ({
-        name,
-        rows: XLSX.utils.sheet_to_json<Record<string, string | number | boolean | null>>(workbook.Sheets[name], {
+      const sheets = workbook.SheetNames.flatMap((name) => {
+        const sheet = workbook.Sheets[name];
+        if (!sheet) return [];
+        return [{ name,
+        rows: XLSX.utils.sheet_to_json<Record<string, string | number | boolean | null>>(sheet, {
           defval: null,
           raw: false,
         }),
-      }));
+      }]; });
       const result = await importFile({
         data: { ...fileForm, fileName: file.name, sheets },
       });
