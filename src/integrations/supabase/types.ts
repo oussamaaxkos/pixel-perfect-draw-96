@@ -43,6 +43,7 @@ export type Database = {
           request: string
           risk_level: string | null
           run_number: number
+          source_id: string | null
           status: string
           tool_call_count: number
           verification_notes: string | null
@@ -76,6 +77,7 @@ export type Database = {
           request: string
           risk_level?: string | null
           run_number?: number
+          source_id?: string | null
           status?: string
           tool_call_count?: number
           verification_notes?: string | null
@@ -109,12 +111,21 @@ export type Database = {
           request?: string
           risk_level?: string | null
           run_number?: number
+          source_id?: string | null
           status?: string
           tool_call_count?: number
           verification_notes?: string | null
           verification_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_steps: {
         Row: {
