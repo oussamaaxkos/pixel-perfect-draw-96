@@ -136,6 +136,10 @@ function DataSourcesPage() {
           },
         ];
       });
+      const totalRows = sheets.reduce((sum, sheet) => sum + sheet.rows.length, 0);
+      if (totalRows > 25000) {
+        throw new Error("Import at most 25,000 rows at a time.");
+      }
       const result = await importFile({
         data: { ...fileForm, fileName: file.name, sheets },
       });

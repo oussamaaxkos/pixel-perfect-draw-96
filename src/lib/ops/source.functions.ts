@@ -135,15 +135,16 @@ export const importFileSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ImportInput.parse(input))
   .handler(async ({ data, context }) => {
-    const {
-      requireAdmin,
-      discoverPostgres,
-      encryptCredential,
-      validateConnectionUrl,
-      persistDiscovery,
-      decryptCredential,
-    } = await import("./source.server");
+    const { requireAdmin, persistDiscovery } = await import("./source.server");
     await requireAdmin(context);
+    const totalRows = data.sheets.reduce((sum, sheet) => sum + sheet.rows.length, 0);
+    if (totalRows > 25000) {
+      throw new Error("Import at most 25,000 rows at a time.");
+    }
+    const payloadBytes = new TextEncoder().encode(JSON.stringify(data.sheets)).byteLength;
+    if (payloadBytes > 8 * 1024 * 1024) {
+      throw new Error("Choose a file whose parsed data is smaller than 8 MB.");
+    }
     const extension = data.fileName.toLowerCase().endsWith(".csv") ? "csv" : "xlsx";
     const tables: TableDiscovery[] = data.sheets.map((sheet) => {
       const names = [...new Set(sheet.rows.flatMap((row) => Object.keys(row)))];
@@ -179,7 +180,6 @@ export const importFileSource = createServerFn({ method: "POST" })
         throw new Error(created.error?.message ?? "Could not create company workspace.");
       workspace = created.data;
     }
-    const totalRows = data.sheets.reduce((sum, sheet) => sum + sheet.rows.length, 0);
     const { data: source, error } = await supabaseAdmin
       .from("data_sources")
       .insert({
@@ -227,14 +227,7 @@ export const updateSourceField = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => FieldInput.parse(input))
   .handler(async ({ data, context }) => {
-    const {
-      requireAdmin,
-      discoverPostgres,
-      encryptCredential,
-      validateConnectionUrl,
-      persistDiscovery,
-      decryptCredential,
-    } = await import("./source.server");
+    const { requireAdmin } = await import("./source.server");
     await requireAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -262,14 +255,7 @@ export const updateSourceTopic = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const {
-      requireAdmin,
-      discoverPostgres,
-      encryptCredential,
-      validateConnectionUrl,
-      persistDiscovery,
-      decryptCredential,
-    } = await import("./source.server");
+    const { requireAdmin } = await import("./source.server");
     await requireAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -288,19 +274,12 @@ export const activateDataSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ sourceId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const {
-      requireAdmin,
-      discoverPostgres,
-      encryptCredential,
-      validateConnectionUrl,
-      persistDiscovery,
-      decryptCredential,
-    } = await import("./source.server");
+    const { requireAdmin, discoverPostgres, decryptCredential } = await import("./source.server");
     await requireAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: source } = await supabaseAdmin
       .from("data_sources")
-      .select("id, encrypted_credentials, credential_iv, source_type")
+      .select("id, encrypted_credentials, credential_iv, source_type, connection_config")
       .eq("id", data.sourceId)
       .maybeSingle();
     if (!source) throw new Error("Data source not found.");
@@ -331,7 +310,8 @@ export const activateDataSource = createServerFn({ method: "POST" })
         source.encrypted_credentials,
         source.credential_iv,
       );
-      await discoverPostgres(connectionString, ["public"]);
+      const config = source.connection_config as { schemas?: string[] };
+      await discoverPostgres(connectionString, config.schemas ?? ["public"]);
     }
     const manifest = { version: snapshot.version, topics, fields };
     const { error: activationError } = await context.supabase.rpc("activate_reviewed_source", {
@@ -359,14 +339,8 @@ export const refreshDataSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ sourceId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const {
-      requireAdmin,
-      discoverPostgres,
-      encryptCredential,
-      validateConnectionUrl,
-      persistDiscovery,
-      decryptCredential,
-    } = await import("./source.server");
+    const { requireAdmin, discoverPostgres, persistDiscovery, decryptCredential } =
+      await import("./source.server");
     await requireAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: source } = await supabaseAdmin
