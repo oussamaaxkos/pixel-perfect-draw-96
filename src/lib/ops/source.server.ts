@@ -4,7 +4,7 @@ type ColumnDiscovery = {
   nullable: boolean;
 };
 
-type TableDiscovery = {
+export type TableDiscovery = {
   schema: string;
   name: string;
   kind: string;
@@ -14,7 +14,10 @@ type TableDiscovery = {
 export async function requireAdmin(context: {
   userId: string;
   supabase: {
-    rpc: (name: "has_role", args: { _user_id: string; _role: "admin" }) => PromiseLike<{ data: unknown; error: unknown }>;
+    rpc: (
+      name: "has_role",
+      args: { _user_id: string; _role: "admin" },
+    ) => PromiseLike<{ data: unknown; error: unknown }>;
   };
 }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -103,7 +106,8 @@ export function validateConnectionUrl(value: string) {
   ) {
     throw new Error("Private network database addresses are not supported.");
   }
-  if (!url.username || !url.password) throw new Error("The connection string must include a user and password.");
+  if (!url.username || !url.password)
+    throw new Error("The connection string must include a user and password.");
   return url;
 }
 
@@ -126,17 +130,24 @@ export async function discoverPostgres(connectionString: string, schemas: string
       WHERE grantee = current_user
         AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER')
     `;
-    if (role?.rolsuper || role?.rolcreatedb || role?.rolcreaterole || Number(writeGrants[0]?.count ?? 0) > 0) {
+    if (
+      role?.rolsuper ||
+      role?.rolcreatedb ||
+      role?.rolcreaterole ||
+      Number(writeGrants[0]?.count ?? 0) > 0
+    ) {
       throw new Error("Use a read-only database user without write or administration privileges.");
     }
-    const rows = await sql<{
-      table_schema: string;
-      table_name: string;
-      table_type: string;
-      column_name: string;
-      data_type: string;
-      is_nullable: string;
-    }[]>`
+    const rows = await sql<
+      {
+        table_schema: string;
+        table_name: string;
+        table_type: string;
+        column_name: string;
+        data_type: string;
+        is_nullable: string;
+      }[]
+    >`
       SELECT t.table_schema, t.table_name, t.table_type, c.column_name, c.data_type, c.is_nullable
       FROM information_schema.tables t
       JOIN information_schema.columns c
@@ -219,7 +230,9 @@ export async function persistDiscovery(
     )
     .select("id, source_schema, source_table");
   if (topicsError) throw new Error(topicsError.message);
-  const topicMap = new Map((topics ?? []).map((topic) => [`${topic.source_schema}.${topic.source_table}`, topic.id]));
+  const topicMap = new Map(
+    (topics ?? []).map((topic) => [`${topic.source_schema}.${topic.source_table}`, topic.id]),
+  );
   const fields = tables.flatMap((table) => {
     const topicId = topicMap.get(`${table.schema}.${table.name}`);
     if (!topicId) return [];
@@ -256,4 +269,3 @@ export async function persistDiscovery(
   });
   return { snapshotId: snapshot.id, version: snapshot.version, tableCount: tables.length };
 }
-

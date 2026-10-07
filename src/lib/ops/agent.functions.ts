@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /* ------------------------- Run the agent ------------------------- */
 
@@ -7,6 +8,7 @@ const RunInput = z.object({
   request: z.string().min(4).max(2000),
   actor: z.string().max(80).optional(),
   actorRole: z.enum(["viewer", "operator", "manager", "admin"]).optional(),
+  sourceId: z.string().uuid().optional(),
 });
 
 export const runInvestigation = createServerFn({ method: "POST" })
@@ -17,6 +19,23 @@ export const runInvestigation = createServerFn({ method: "POST" })
       request: data.request,
       actor: data.actor ?? "demo.operator",
       actorRole: data.actorRole ?? "operator",
+      sourceId: data.sourceId,
+    });
+    return { run_id: result.run_id, error: result.error ?? null };
+  });
+
+export const runCompanyInvestigation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RunInput.extend({ sourceId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { requireAdmin } = await import("./source.server");
+    await requireAdmin(context);
+    const { runAgent } = await import("./agent.server");
+    const result = await runAgent({
+      request: data.request,
+      actor: context.userId,
+      actorRole: "admin",
+      sourceId: data.sourceId,
     });
     return { run_id: result.run_id, error: result.error ?? null };
   });
@@ -90,7 +109,11 @@ export const decideApproval = createServerFn({ method: "POST" })
       action: `${approval.action_type}:${data.decision}`,
       status: executed ? "success" : "recorded",
       risk_level: approval.risk_level,
-      metadata: { note: data.note ?? null, execution: executionNote, amount: approval.amount } as any,
+      metadata: {
+        note: data.note ?? null,
+        execution: executionNote,
+        amount: approval.amount,
+      } as any,
     });
 
     return { ok: true, executed, executionNote };
@@ -108,7 +131,10 @@ export const activatePromptVersion = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (!target) throw new Error("Prompt version not found.");
-    await supabaseAdmin.from("prompt_versions").update({ is_active: false }).eq("name", target.name);
+    await supabaseAdmin
+      .from("prompt_versions")
+      .update({ is_active: false })
+      .eq("name", target.name);
     await supabaseAdmin.from("prompt_versions").update({ is_active: true }).eq("id", data.id);
     await supabaseAdmin.from("audit_logs").insert({
       actor: "demo.admin",
@@ -131,7 +157,8 @@ export const activateModel = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (!target) throw new Error("Model not found.");
-    if (!target.available) throw new Error("This model has no provider credentials in this environment.");
+    if (!target.available)
+      throw new Error("This model has no provider credentials in this environment.");
     await supabaseAdmin.from("model_configs").update({ is_active: false }).neq("id", data.id);
     await supabaseAdmin.from("model_configs").update({ is_active: true }).eq("id", data.id);
     await supabaseAdmin.from("audit_logs").insert({
@@ -164,7 +191,10 @@ export const ingestDocument = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Validate -> parse -> clean -> chunk -> metadata -> index
-    const cleaned = data.content.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();
+    const cleaned = data.content
+      .replace(/\r/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
     const paragraphs = cleaned.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
     const chunks: { section: string; content: string }[] = [];
     let buffer = "";
@@ -195,7 +225,12 @@ export const ingestDocument = createServerFn({ method: "POST" })
         document_type: data.document_type,
         version: data.version,
         author: data.author,
-        tags: data.tags ? data.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        tags: data.tags
+          ? data.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [],
         source_format: data.source_format,
         status: "indexed",
         chunk_count: chunks.length,

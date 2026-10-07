@@ -14,20 +14,48 @@ export type ApprovedField = { source_column: string; access_level: string; seman
 
 export function validateApprovedQuery(input: unknown, fields: ApprovedField[]) {
   const query = CompanyQuery.parse(input);
-  const permitted = new Map(fields.filter((field) => field.access_level === "safe").map((field) => [field.source_column, field]));
+  const permitted = new Map(
+    fields
+      .filter((field) => field.access_level === "safe")
+      .map((field) => [field.source_column, field]),
+  );
   for (const field of [query.group_by, query.measure, query.filter_field]) {
-    if (field && !permitted.has(field)) throw new Error(`Field ${field} is not approved for this operation.`);
+    if (field && !permitted.has(field))
+      throw new Error(`Field ${field} is not approved for this operation.`);
   }
-  if (["sum", "average"].includes(query.operation) && (!query.measure || permitted.get(query.measure)?.semantic_type !== "measure")) {
+  if (
+    ["sum", "average"].includes(query.operation) &&
+    (!query.measure || permitted.get(query.measure)?.semantic_type !== "measure")
+  ) {
     throw new Error("Choose an approved numeric measure for this calculation.");
   }
   return query;
 }
 
-export function queryImportedRows(rows: Record<string, unknown>[], input: unknown, fields: ApprovedField[]) {
+export function queryImportedRows(
+  rows: Record<string, unknown>[],
+  input: unknown,
+  fields: ApprovedField[],
+) {
   const query = validateApprovedQuery(input, fields);
-  const filtered = rows.filter((row) => !query.filter_field || String(row[query.filter_field] ?? "") === String(query.filter_value ?? ""));
-  if (query.operation === "rows") return filtered.slice(0, query.limit).map((row) => Object.fromEntries(fields.filter((field) => field.access_level !== "excluded").map((field) => [field.source_column, field.access_level === "masked" ? "[masked]" : row[field.source_column] ?? null])));
+  const filtered = rows.filter(
+    (row) =>
+      !query.filter_field ||
+      String(row[query.filter_field] ?? "") === String(query.filter_value ?? ""),
+  );
+  if (query.operation === "rows")
+    return filtered
+      .slice(0, query.limit)
+      .map((row) =>
+        Object.fromEntries(
+          fields
+            .filter((field) => field.access_level !== "excluded")
+            .map((field) => [
+              field.source_column,
+              field.access_level === "masked" ? "[masked]" : (row[field.source_column] ?? null),
+            ]),
+        ),
+      );
   const groups = new Map<string, { count: number; sum: number }>();
   for (const row of filtered) {
     const label = query.group_by ? String(row[query.group_by] ?? "Unknown") : "All records";
@@ -35,7 +63,8 @@ export function queryImportedRows(rows: Record<string, unknown>[], input: unknow
     group.count++;
     if (query.measure) {
       const value = Number(row[query.measure]);
-      if (!Number.isFinite(value)) throw new Error("The selected measure contains non-numeric values.");
+      if (!Number.isFinite(value))
+        throw new Error("The selected measure contains non-numeric values.");
       group.sum += value;
     }
     groups.set(label, group);
@@ -43,6 +72,13 @@ export function queryImportedRows(rows: Record<string, unknown>[], input: unknow
   if (!filtered.length && !query.group_by) groups.set("All records", { count: 0, sum: 0 });
   return [...groups.entries()].slice(0, query.limit).map(([category, group]) => ({
     category,
-    value: query.operation === "count" ? group.count : query.operation === "sum" ? group.sum : group.count ? group.sum / group.count : null,
+    value:
+      query.operation === "count"
+        ? group.count
+        : query.operation === "sum"
+          ? group.sum
+          : group.count
+            ? group.sum / group.count
+            : null,
   }));
 }

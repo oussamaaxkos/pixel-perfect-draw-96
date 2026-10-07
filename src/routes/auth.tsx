@@ -7,11 +7,16 @@ import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({ next: typeof search["next"] === "string" ? search["next"] : "/data-sources" }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    next: typeof search["next"] === "string" ? search["next"] : "/data-sources",
+  }),
   head: () => ({
     meta: [
       { title: "Administrator Sign In | OpsMind AI" },
-      { name: "description", content: "Secure administrator access to OpsMind AI company data source configuration." },
+      {
+        name: "description",
+        content: "Secure administrator access to OpsMind AI company data source configuration.",
+      },
       { property: "og:title", content: "Administrator Sign In | OpsMind AI" },
       { property: "og:description", content: "Secure administrator access to OpsMind AI." },
       { property: "og:type", content: "website" },
@@ -29,14 +34,19 @@ function AuthPage() {
       if (!data.user) return;
       const next = sessionStorage.getItem("opsmind-auth-next");
       sessionStorage.removeItem("opsmind-auth-next");
-      void navigate({ to: next?.startsWith("/") && !next.startsWith("//") ? next : "/data-sources" });
+      void navigate({
+        to: next?.startsWith("/") && !next.startsWith("//") ? next : "/data-sources",
+      });
     });
   }, [navigate]);
 
   async function signIn() {
     setBusy(true);
     const intended = new URLSearchParams(window.location.search).get("next");
-    sessionStorage.setItem("opsmind-auth-next", intended?.startsWith("/") && !intended.startsWith("//") ? intended : "/data-sources");
+    sessionStorage.setItem(
+      "opsmind-auth-next",
+      intended?.startsWith("/") && !intended.startsWith("//") ? intended : "/data-sources",
+    );
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/auth",
       extraParams: { prompt: "select_account" },
