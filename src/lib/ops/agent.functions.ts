@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /* ------------------------- Run the agent ------------------------- */
 
@@ -7,6 +8,7 @@ const RunInput = z.object({
   request: z.string().min(4).max(2000),
   actor: z.string().max(80).optional(),
   actorRole: z.enum(["viewer", "operator", "manager", "admin"]).optional(),
+  sourceId: z.string().uuid().optional(),
 });
 
 export const runInvestigation = createServerFn({ method: "POST" })
@@ -17,7 +19,19 @@ export const runInvestigation = createServerFn({ method: "POST" })
       request: data.request,
       actor: data.actor ?? "demo.operator",
       actorRole: data.actorRole ?? "operator",
+      sourceId: data.sourceId,
     });
+    return { run_id: result.run_id, error: result.error ?? null };
+  });
+
+export const runCompanyInvestigation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RunInput.extend({ sourceId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { requireAdmin } = await import("./source.server");
+    await requireAdmin(context);
+    const { runAgent } = await import("./agent.server");
+    const result = await runAgent({ request: data.request, actor: context.userId, actorRole: "admin", sourceId: data.sourceId });
     return { run_id: result.run_id, error: result.error ?? null };
   });
 

@@ -6,7 +6,8 @@
 //          -> verification -> risk engine -> approval | auto action -> audit
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { chatCompletion, GatewayError, type ChatMessage } from "./gateway.server";
-import { TOOL_MAP, TOOLS, canExecute, toolSchemasForModel } from "./tools.server";
+import { TOOLS, canExecute } from "./tools.server";
+import type { ToolDefinition } from "./tools.server";
 import type { Citation, EvidenceItem, PermissionLevel, ProposedAction, RiskLevel } from "./types";
 
 const RISK_RANK: Record<RiskLevel, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
@@ -99,6 +100,7 @@ export interface RunAgentInput {
   actor?: string;
   actorRole?: PermissionLevel;
   evalRunId?: string | null;
+  sourceId?: string | undefined;
 }
 
 export async function runAgent(input: RunAgentInput) {
@@ -106,6 +108,10 @@ export async function runAgent(input: RunAgentInput) {
   const actor = input.actor ?? "demo.operator";
   const actorRole: PermissionLevel = input.actorRole ?? "operator";
   const { model, promptVersion, systemPrompt } = await loadConfig();
+  const company = input.sourceId ? await (await import("./company-tools.server")).loadCompanyTools(input.sourceId) : null;
+  const activeTools = company?.tools ?? TOOLS;
+  const activeToolMap = new Map(activeTools.map((tool) => [tool.name, tool]));
+  const schemasForModel = () => activeTools.map((tool) => ({ type: "function" as const, function: { name: tool.name, description: `${tool.description} [risk: ${tool.risk_level}]`, parameters: tool.parameters } }));
 
   const { data: run, error: runError } = await supabaseAdmin
     .from("agent_runs")
@@ -117,6 +123,7 @@ export async function runAgent(input: RunAgentInput) {
       model: model.model_id,
       prompt_version: promptVersion,
       eval_run_id: input.evalRunId ?? null,
+      source_id: input.sourceId ?? null,
     })
     .select("id, run_number")
     .single();
@@ -177,7 +184,7 @@ export async function runAgent(input: RunAgentInput) {
           content:
             "You classify enterprise operations requests and plan the investigation. Respond with JSON only: " +
             '{"intent":"snake_case_intent","entities":{"order_number":null,"customer_code":null,"invoice_number":null,"ticket_number":null},"plan":["step 1","step 2"]}. ' +
-            `Available tools: ${TOOLS.map((t) => t.name).join(", ")}.`,
+            `Available tools: ${activeTools.map((t) => t.name).join(", ")}.`,
         },
         { role: "user", content: input.request },
       ],
@@ -210,7 +217,7 @@ export async function runAgent(input: RunAgentInput) {
     const messages: ChatMessage[] = [
       {
         role: "system",
-        content: `${systemPrompt}
+        content: `${systemPrompt}\n${company?.context ?? ""}
 
 Detected intent: ${intent}
 Investigation plan: ${plan.join(" -> ") || "not specified"}
@@ -233,7 +240,7 @@ ${OUTPUT_CONTRACT}`,
       const completion = await chatCompletion({
         model: model.model_id,
         messages,
-        tools: toolSchemasForModel(),
+        tools: schemasForModel(),
         temperature: Number(model.temperature),
         maxTokens: model.max_output_tokens,
       });
@@ -250,7 +257,7 @@ ${OUTPUT_CONTRACT}`,
 
       for (const call of calls) {
         const toolStart = mark();
-        const tool = TOOL_MAP.get(call.function.name);
+        const tool = activeToolMap.get(call.function.name);
         let args: Record<string, unknown> = {};
         try {
           args = JSON.parse(call.function.arguments || "{}");
@@ -339,7 +346,7 @@ ${OUTPUT_CONTRACT}`,
 
     /* ------ Guard: never answer a policy question without retrieval ------ */
     if (documentsRetrieved === 0) {
-      const ragTool = TOOL_MAP.get("search_knowledge_base");
+      const ragTool = activeToolMap.get("search_knowledge_base");
       if (ragTool) {
         const ragStart = mark();
         let ragOutput: unknown;
@@ -469,7 +476,7 @@ ${OUTPUT_CONTRACT}`,
       ? parsed.proposed_actions.filter((a: any) => a && a.action_type && a.action_type !== "none")
       : [];
     const proposedActions: ProposedAction[] = rawActions.map((a) => {
-      const tool = TOOL_MAP.get(a.action_type);
+      const tool = activeToolMap.get(a.action_type);
       let risk: RiskLevel = (["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]).includes(a.risk_level)
         ? a.risk_level
         : "MEDIUM";
@@ -483,7 +490,7 @@ ${OUTPUT_CONTRACT}`,
     let runRisk: RiskLevel = "LOW";
     for (const a of proposedActions) if (RISK_RANK[a.risk_level] > RISK_RANK[runRisk]) runRisk = a.risk_level;
     for (const name of usedTools) {
-      const t = TOOL_MAP.get(name);
+      const t = activeToolMap.get(name);
       if (t && RISK_RANK[t.risk_level] > RISK_RANK[runRisk]) runRisk = t.risk_level;
     }
     if (verificationStatus === "failed" && RISK_RANK[runRisk] < RISK_RANK.MEDIUM) runRisk = "MEDIUM";

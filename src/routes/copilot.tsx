@@ -14,7 +14,8 @@ import {
   StatusBadge,
   fmtNumber,
 } from "@/components/ops/primitives";
-import { runInvestigation } from "@/lib/ops/agent.functions";
+import { runCompanyInvestigation, runInvestigation } from "@/lib/ops/agent.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { runQuery } from "@/lib/ops/client-queries";
 import { chartableFromToolCalls } from "@/lib/ops/chartable";
 import { ResultChart } from "@/components/ops/result-chart";
@@ -59,9 +60,20 @@ function Copilot() {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const invoke = useServerFn(runInvestigation);
+  const invokeCompany = useServerFn(runCompanyInvestigation);
   const qc = useQueryClient();
 
   const [showChartFor, setShowChartFor] = useState<string | null>(null);
+  const [activeSource, setActiveSource] = useState<{ id: string; name: string } | null>(null);
+
+  useState(() => {
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: source } = await supabase.from("data_sources").select("id, name").eq("status", "active").maybeSingle();
+      if (source) setActiveSource(source);
+    });
+    return null;
+  });
 
   const detail = useQuery({ ...runQuery(activeRunId ?? ""), enabled: Boolean(activeRunId) });
   const run = detail.data?.run;
@@ -74,9 +86,9 @@ function Copilot() {
     setTurns((t) => [...t, { role: "user", text }]);
     setInput("");
     try {
-      const result = await invoke({
-        data: { request: text, actor: "marta.rossi", actorRole: "operator" },
-      });
+      const result = activeSource
+        ? await invokeCompany({ data: { request: text, actor: "admin", actorRole: "admin", sourceId: activeSource.id } })
+        : await invoke({ data: { request: text, actor: "marta.rossi", actorRole: "operator" } });
       setActiveRunId(result.run_id);
       const fresh = await qc.fetchQuery(runQuery(result.run_id));
       setTurns((t) => [
@@ -102,7 +114,7 @@ function Copilot() {
     <AppShell>
       <PageHeader
         title="AI Copilot"
-        subtitle="The agent plans, queries operational records, retrieves policy evidence, verifies its own claims and routes sensitive actions to a human."
+        subtitle={activeSource ? `Using reviewed read-only data from ${activeSource.name}.` : "The agent plans, queries operational records, retrieves policy evidence, verifies its own claims and routes sensitive actions to a human."}
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
