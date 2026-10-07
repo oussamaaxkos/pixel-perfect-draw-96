@@ -7,6 +7,12 @@ is executed.
 
 All customer, order, ticket and invoice data in this environment is **synthetic**.
 
+## Adaptable company data
+
+The protected **Data Sources** workspace accepts read-only Neon or Supabase PostgreSQL links and CSV/Excel imports. Discovery records tables and fields as a versioned snapshot; nothing is available to the agent until the configured Google administrator enables topics, classifies fields as safe, masked, or excluded, and activates that exact review version.
+
+Company investigations use one generated `query_company_data` tool. It accepts only approved topic and field names and a small set of operations (rows, count, sum, average). Live databases run parameterized statements inside read-only transactions; imports use the same validation and output shape. Arbitrary model-written SQL is never accepted. Activation replaces the previous source atomically and every run records its source ID and mapping version.
+
 ## Architecture
 
 ```text

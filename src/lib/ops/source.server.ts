@@ -4,7 +4,7 @@ type ColumnDiscovery = {
   nullable: boolean;
 };
 
-type TableDiscovery = {
+export type TableDiscovery = {
   schema: string;
   name: string;
   kind: string;

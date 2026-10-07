@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowUp, BarChart3, FileText, Loader2, ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/ops/app-shell";
@@ -66,14 +66,13 @@ function Copilot() {
   const [showChartFor, setShowChartFor] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<{ id: string; name: string } | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     void supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
       const { data: source } = await supabase.from("data_sources").select("id, name").eq("status", "active").maybeSingle();
       if (source) setActiveSource(source);
     });
-    return null;
-  });
+  }, []);
 
   const detail = useQuery({ ...runQuery(activeRunId ?? ""), enabled: Boolean(activeRunId) });
   const run = detail.data?.run;

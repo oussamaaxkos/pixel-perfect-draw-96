@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { TableDiscovery } from "./source.server";
 
 export const getDataSourceSetup = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

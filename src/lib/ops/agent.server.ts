@@ -7,7 +7,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { chatCompletion, GatewayError, type ChatMessage } from "./gateway.server";
 import { TOOLS, canExecute } from "./tools.server";
-import type { ToolDefinition } from "./tools.server";
 import type { Citation, EvidenceItem, PermissionLevel, ProposedAction, RiskLevel } from "./types";
 
 const RISK_RANK: Record<RiskLevel, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
