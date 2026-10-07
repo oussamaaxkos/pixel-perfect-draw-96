@@ -69,7 +69,11 @@ function Copilot() {
   useEffect(() => {
     void supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
-      const { data: source } = await supabase.from("data_sources").select("id, name").eq("status", "active").maybeSingle();
+      const { data: source } = await supabase
+        .from("data_sources")
+        .select("id, name")
+        .eq("status", "active")
+        .maybeSingle();
       if (source) setActiveSource(source);
     });
   }, []);
@@ -86,7 +90,9 @@ function Copilot() {
     setInput("");
     try {
       const result = activeSource
-        ? await invokeCompany({ data: { request: text, actor: "admin", actorRole: "admin", sourceId: activeSource.id } })
+        ? await invokeCompany({
+            data: { request: text, actor: "admin", actorRole: "admin", sourceId: activeSource.id },
+          })
         : await invoke({ data: { request: text, actor: "marta.rossi", actorRole: "operator" } });
       setActiveRunId(result.run_id);
       const fresh = await qc.fetchQuery(runQuery(result.run_id));
@@ -113,7 +119,11 @@ function Copilot() {
     <AppShell>
       <PageHeader
         title="AI Copilot"
-        subtitle={activeSource ? `Using reviewed read-only data from ${activeSource.name}.` : "The agent plans, queries operational records, retrieves policy evidence, verifies its own claims and routes sensitive actions to a human."}
+        subtitle={
+          activeSource
+            ? `Using reviewed read-only data from ${activeSource.name}.`
+            : "The agent plans, queries operational records, retrieves policy evidence, verifies its own claims and routes sensitive actions to a human."
+        }
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">

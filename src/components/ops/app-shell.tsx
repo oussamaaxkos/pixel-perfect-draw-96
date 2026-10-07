@@ -28,7 +28,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
-const NAV: Array<{ group: string; items: Array<{ to: string; label: string; icon: typeof Activity }> }> = [
+const NAV: Array<{
+  group: string;
+  items: Array<{ to: string; label: string; icon: typeof Activity }>;
+}> = [
   {
     group: "Operate",
     items: [
@@ -168,7 +171,35 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            {identity ? <div className="flex items-center gap-2"><span className="hidden max-w-44 truncate text-xs sm:block">{identity}</span><Button size="icon-sm" variant="ghost" title="Sign out" aria-label="Sign out" onClick={async () => { await queryClient.cancelQueries(); queryClient.clear(); await supabase.auth.signOut(); await navigate({ to: "/auth", search: { next: "/data-sources" }, replace: true }); }}><LogOut /></Button></div> : <Button asChild size="sm" variant="outline"><Link to="/auth" search={{ next: "/data-sources" }}>Admin sign in</Link></Button>}
+            {identity ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden max-w-44 truncate text-xs sm:block">{identity}</span>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  title="Sign out"
+                  aria-label="Sign out"
+                  onClick={async () => {
+                    await queryClient.cancelQueries();
+                    queryClient.clear();
+                    await supabase.auth.signOut();
+                    await navigate({
+                      to: "/auth",
+                      search: { next: "/data-sources" },
+                      replace: true,
+                    });
+                  }}
+                >
+                  <LogOut />
+                </Button>
+              </div>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/auth" search={{ next: "/data-sources" }}>
+                  Admin sign in
+                </Link>
+              </Button>
+            )}
           </div>
         </header>
 

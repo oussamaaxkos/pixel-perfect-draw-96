@@ -47,11 +47,11 @@ and estimated cost. The run trace page replays all of it.
 
 ### Risk and human-in-the-loop
 
-| Risk | Handling |
-| --- | --- |
-| LOW / MEDIUM | executed immediately, audited |
-| HIGH | approval required (emails, refunds above €250) |
-| CRITICAL | approval required (refunds above €1,000) |
+| Risk         | Handling                                       |
+| ------------ | ---------------------------------------------- |
+| LOW / MEDIUM | executed immediately, audited                  |
+| HIGH         | approval required (emails, refunds above €250) |
+| CRITICAL     | approval required (refunds above €1,000)       |
 
 `issue_refund` and `create_email_draft` never execute inside the agent loop: calling them only
 records a proposed action for a manager.

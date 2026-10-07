@@ -32,7 +32,11 @@ interface StepRecord {
 
 function safeJson(text: string | null): any | null {
   if (!text) return null;
-  const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const trimmed = text
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "")
+    .trim();
   try {
     return JSON.parse(trimmed);
   } catch {
@@ -107,10 +111,20 @@ export async function runAgent(input: RunAgentInput) {
   const actor = input.actor ?? "demo.operator";
   const actorRole: PermissionLevel = input.actorRole ?? "operator";
   const { model, promptVersion, systemPrompt } = await loadConfig();
-  const company = input.sourceId ? await (await import("./company-tools.server")).loadCompanyTools(input.sourceId) : null;
+  const company = input.sourceId
+    ? await (await import("./company-tools.server")).loadCompanyTools(input.sourceId)
+    : null;
   const activeTools = company?.tools ?? TOOLS;
   const activeToolMap = new Map(activeTools.map((tool) => [tool.name, tool]));
-  const schemasForModel = () => activeTools.map((tool) => ({ type: "function" as const, function: { name: tool.name, description: `${tool.description} [risk: ${tool.risk_level}]`, parameters: tool.parameters } }));
+  const schemasForModel = () =>
+    activeTools.map((tool) => ({
+      type: "function" as const,
+      function: {
+        name: tool.name,
+        description: `${tool.description} [risk: ${tool.risk_level}]`,
+        parameters: tool.parameters,
+      },
+    }));
 
   const { data: run, error: runError } = await supabaseAdmin
     .from("agent_runs")
@@ -142,10 +156,14 @@ export async function runAgent(input: RunAgentInput) {
     if (steps.length) {
       await supabaseAdmin
         .from("agent_steps")
-        .insert(steps.map((s, i) => ({ run_id: run.id, step_index: i, ...s, detail: s.detail as any })));
+        .insert(
+          steps.map((s, i) => ({ run_id: run.id, step_index: i, ...s, detail: s.detail as any })),
+        );
     }
     if (toolCallRows.length) {
-      await supabaseAdmin.from("tool_calls").insert(toolCallRows.map((t) => ({ run_id: run.id, ...t })));
+      await supabaseAdmin
+        .from("tool_calls")
+        .insert(toolCallRows.map((t) => ({ run_id: run.id, ...t })));
     }
     const cost =
       (inputTokens / 1000) * Number(model.input_cost_per_1k) +
@@ -278,7 +296,10 @@ ${OUTPUT_CONTRACT}`,
           output = { error, permission_denied: true };
         } else if (tool.requires_approval) {
           status = "queued_for_approval";
-          output = { queued_for_approval: true, note: "Recorded as a proposed action for human approval." };
+          output = {
+            queued_for_approval: true,
+            note: "Recorded as a proposed action for human approval.",
+          };
         } else {
           try {
             output = await tool.execute(args as any);
@@ -292,7 +313,9 @@ ${OUTPUT_CONTRACT}`,
         if (tool?.name === "search_knowledge_base" && (output as any)?.chunks) {
           for (const chunk of (output as any).chunks as Citation[] & any[]) {
             documentsRetrieved += 1;
-            if (!citations.find((c) => c.document === chunk.document && c.section === chunk.section)) {
+            if (
+              !citations.find((c) => c.document === chunk.document && c.section === chunk.section)
+            ) {
               citations.push({
                 document: chunk.document,
                 section: chunk.section,
@@ -325,7 +348,12 @@ ${OUTPUT_CONTRACT}`,
           duration_ms: mark() - toolStart,
         });
         steps.push({
-          node: tool?.category === "rag" ? "rag_agent" : tool?.category === "sql" ? "sql_agent" : "api_agent",
+          node:
+            tool?.category === "rag"
+              ? "rag_agent"
+              : tool?.category === "sql"
+                ? "sql_agent"
+                : "api_agent",
           label: `Tool: ${call.function.name}`,
           status: status === "success" ? "completed" : status,
           detail: { input: args, output_preview: JSON.stringify(output).slice(0, 600) },
@@ -362,7 +390,9 @@ ${OUTPUT_CONTRACT}`,
 
         for (const chunk of ((ragOutput as any)?.chunks ?? []) as Citation[]) {
           documentsRetrieved += 1;
-          if (!citations.find((c) => c.document === chunk.document && c.section === chunk.section)) {
+          if (
+            !citations.find((c) => c.document === chunk.document && c.section === chunk.section)
+          ) {
             citations.push(chunk);
           }
         }
@@ -395,19 +425,23 @@ ${OUTPUT_CONTRACT}`,
             role: "user",
             content: `Policy evidence retrieved on your behalf (you did not search it):\n${JSON.stringify(
               ragOutput,
-            ).slice(0, 6000)}\n\nAnswer now using the records you already gathered plus this policy evidence. ${OUTPUT_CONTRACT}`,
+            ).slice(
+              0,
+              6000,
+            )}\n\nAnswer now using the records you already gathered plus this policy evidence. ${OUTPUT_CONTRACT}`,
           });
         }
       }
     }
 
-
-
     /* ---------------- Node 3: reasoning output ---------------- */
     if (!finalContent) {
       const wrap = await chatCompletion({
         model: model.model_id,
-        messages: [...messages, { role: "user", content: `Stop investigating and answer now. ${OUTPUT_CONTRACT}` }],
+        messages: [
+          ...messages,
+          { role: "user", content: `Stop investigating and answer now. ${OUTPUT_CONTRACT}` },
+        ],
         temperature: 0,
         maxTokens: model.max_output_tokens,
       });
@@ -448,7 +482,9 @@ ${OUTPUT_CONTRACT}`,
     const notes: string[] = [];
     if (unsupported.length) {
       verificationStatus = "failed";
-      notes.push(`${unsupported.length} citation(s) do not match retrieved evidence and were removed.`);
+      notes.push(
+        `${unsupported.length} citation(s) do not match retrieved evidence and were removed.`,
+      );
     }
     if (policyClaim && citations.length === 0 && !insufficient) {
       verificationStatus = "failed";
@@ -464,7 +500,11 @@ ${OUTPUT_CONTRACT}`,
       node: "verification",
       label: "Evidence verification",
       status: verificationStatus === "passed" ? "completed" : "failed",
-      detail: { grounded_citations: citations.length, unsupported_citations: unsupported.length, notes },
+      detail: {
+        grounded_citations: citations.length,
+        unsupported_citations: unsupported.length,
+        notes,
+      },
       started_offset_ms: verifyStart,
       duration_ms: mark() - verifyStart,
     });
@@ -476,7 +516,9 @@ ${OUTPUT_CONTRACT}`,
       : [];
     const proposedActions: ProposedAction[] = rawActions.map((a) => {
       const tool = activeToolMap.get(a.action_type);
-      let risk: RiskLevel = (["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]).includes(a.risk_level)
+      let risk: RiskLevel = (["LOW", "MEDIUM", "HIGH", "CRITICAL"] as RiskLevel[]).includes(
+        a.risk_level,
+      )
         ? a.risk_level
         : "MEDIUM";
       if (tool && RISK_RANK[tool.risk_level] > RISK_RANK[risk]) risk = tool.risk_level;
@@ -487,19 +529,25 @@ ${OUTPUT_CONTRACT}`,
     });
 
     let runRisk: RiskLevel = "LOW";
-    for (const a of proposedActions) if (RISK_RANK[a.risk_level] > RISK_RANK[runRisk]) runRisk = a.risk_level;
+    for (const a of proposedActions)
+      if (RISK_RANK[a.risk_level] > RISK_RANK[runRisk]) runRisk = a.risk_level;
     for (const name of usedTools) {
       const t = activeToolMap.get(name);
       if (t && RISK_RANK[t.risk_level] > RISK_RANK[runRisk]) runRisk = t.risk_level;
     }
-    if (verificationStatus === "failed" && RISK_RANK[runRisk] < RISK_RANK.MEDIUM) runRisk = "MEDIUM";
+    if (verificationStatus === "failed" && RISK_RANK[runRisk] < RISK_RANK.MEDIUM)
+      runRisk = "MEDIUM";
 
     const approvalRequired = proposedActions.some((a) => RISK_RANK[a.risk_level] >= RISK_RANK.HIGH);
     steps.push({
       node: "risk_engine",
       label: "Risk assessment",
       status: "completed",
-      detail: { risk_level: runRisk, approval_required: approvalRequired, actions: proposedActions.length },
+      detail: {
+        risk_level: runRisk,
+        approval_required: approvalRequired,
+        actions: proposedActions.length,
+      },
       started_offset_ms: riskStart,
       duration_ms: mark() - riskStart,
     });
@@ -569,13 +617,21 @@ ${OUTPUT_CONTRACT}`,
       model: model.model_id,
       prompt_version: promptVersion,
       latency_ms: Date.now() - started,
-      metadata: { intent, documents_retrieved: documentsRetrieved, tool_calls: toolCallRows.length } as any,
+      metadata: {
+        intent,
+        documents_retrieved: documentsRetrieved,
+        tool_calls: toolCallRows.length,
+      } as any,
     });
 
     return { run: updated, run_id: run.id };
   } catch (e) {
     const message =
-      e instanceof GatewayError ? e.message : e instanceof Error ? e.message : "Unexpected agent failure.";
+      e instanceof GatewayError
+        ? e.message
+        : e instanceof Error
+          ? e.message
+          : "Unexpected agent failure.";
     steps.push({
       node: "error",
       label: "Run failed",
