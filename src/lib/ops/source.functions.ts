@@ -340,20 +340,18 @@ export const activateDataSource = createServerFn({ method: "POST" })
       _manifest: manifest,
     });
     if (activationError) throw new Error(activationError.message);
-    await supabaseAdmin
-      .from("audit_logs")
-      .insert({
-        actor: context.userId,
-        actor_role: "admin",
-        event_type: "source_activated",
-        action: source.id,
-        status: "success",
-        metadata: {
-          snapshot_version: snapshot.version,
-          topics: topics.length,
-          fields: fields.length,
-        },
-      });
+    await supabaseAdmin.from("audit_logs").insert({
+      actor: context.userId,
+      actor_role: "admin",
+      event_type: "source_activated",
+      action: source.id,
+      status: "success",
+      metadata: {
+        snapshot_version: snapshot.version,
+        topics: topics.length,
+        fields: fields.length,
+      },
+    });
     return { ok: true };
   });
 
