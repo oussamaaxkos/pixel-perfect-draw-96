@@ -176,12 +176,6 @@ function DataSourcesPage() {
         subtitle="Connect one company's operational data, inspect its structure, and approve exactly what the agent may query."
       />
 
-      {data?.claimedFirstAdmin ? (
-        <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
-          <ShieldCheck className="h-4 w-4" /> Your account is now the workspace administrator.
-        </div>
-      ) : null}
-
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <Panel
           title="Add company data"

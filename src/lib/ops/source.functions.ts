@@ -20,7 +20,6 @@ export const getDataSourceSetup = createServerFn({ method: "GET" })
         .upsert({ user_id: context.userId, role: "admin" }, { onConflict: "user_id,role" });
       if (error) throw new Error("Could not verify administrator access.");
     }
-    const claimed = false;
     await requireAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [
@@ -45,7 +44,6 @@ export const getDataSourceSetup = createServerFn({ method: "GET" })
       supabaseAdmin.from("source_fields").select("*").order("source_column"),
     ]);
     return {
-      claimedFirstAdmin: claimed === true,
       userId: context.userId,
       workspaces: workspaces ?? [],
       sources: sources ?? [],
