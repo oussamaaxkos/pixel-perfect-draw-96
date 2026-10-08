@@ -32,3 +32,4 @@
 - [x] Configure company topics, semantic fields, masking, and exclusions
 - [x] Generate parameterized read-only tools from approved fields only
 - [x] Add Google administrator access, source review, schema refresh, and atomic activation
+- [x] Show imported schema as UML class diagram

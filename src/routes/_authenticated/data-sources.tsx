@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/ops/app-shell";
 import { EmptyState, PageHeader, Panel, StatusBadge, fmtDate } from "@/components/ops/primitives";
 import { Button } from "@/components/ui/button";
+import { SchemaUml } from "@/components/ops/schema-uml";
 import {
   activateDataSource,
   connectPostgresSource,
@@ -52,6 +53,7 @@ function DataSourcesPage() {
   const [mode, setMode] = useState<"database" | "file">("database");
   const [busy, setBusy] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [view, setView] = useState<"uml" | "list">("uml");
   const [dbForm, setDbForm] = useState({
     companyName: "",
     sourceName: "",
@@ -373,6 +375,17 @@ function DataSourcesPage() {
           }
         >
           {topics.length ? (
+            <div className="mb-3 flex gap-2">
+              {(["uml", "list"] as const).map((v) => (
+                <Button key={v} size="sm" variant={view === v ? "default" : "outline"} onClick={() => setView(v)}>
+                  {v === "uml" ? "UML class diagram" : "Schema fields"}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          {topics.length && view === "uml" ? (
+            <SchemaUml topics={topics} fields={data?.fields ?? []} />
+          ) : topics.length ? (
             <div className="space-y-3">
               {topics.map((topic) => {
                 const fields = data?.fields.filter((field) => field.topic_id === topic.id) ?? [];
