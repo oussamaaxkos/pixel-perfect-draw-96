@@ -29,6 +29,7 @@ import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as AuthenticatedDataSourcesRouteImport } from './routes/_authenticated/data-sources'
 import { Route as RunsIndexRouteImport } from './routes/runs.index'
 import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
+import { Route as AuthenticatedEntitiesTopicIdRouteImport } from './routes/_authenticated/entities.$topicId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -130,6 +131,12 @@ const RunsRunIdRoute = RunsRunIdRouteImport.update({
   path: '/$runId',
   getParentRoute: () => RunsRoute,
 } as any)
+const AuthenticatedEntitiesTopicIdRoute =
+  AuthenticatedEntitiesTopicIdRouteImport.update({
+    id: '/entities/$topicId',
+    path: '/entities/$topicId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/data-sources': typeof AuthenticatedDataSourcesRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/runs/': typeof RunsIndexRoute
+  '/entities/$topicId': typeof AuthenticatedEntitiesTopicIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/data-sources': typeof AuthenticatedDataSourcesRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/runs': typeof RunsIndexRoute
+  '/entities/$topicId': typeof AuthenticatedEntitiesTopicIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/data-sources': typeof AuthenticatedDataSourcesRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/runs/': typeof RunsIndexRoute
+  '/_authenticated/entities/$topicId': typeof AuthenticatedEntitiesTopicIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/data-sources'
     | '/runs/$runId'
     | '/runs/'
+    | '/entities/$topicId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/data-sources'
     | '/runs/$runId'
     | '/runs'
+    | '/entities/$topicId'
   id:
     | '__root__'
     | '/'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/data-sources'
     | '/runs/$runId'
     | '/runs/'
+    | '/_authenticated/entities/$topicId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -423,15 +436,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RunsRunIdRouteImport
       parentRoute: typeof RunsRoute
     }
+    '/_authenticated/entities/$topicId': {
+      id: '/_authenticated/entities/$topicId'
+      path: '/entities/$topicId'
+      fullPath: '/entities/$topicId'
+      preLoaderRoute: typeof AuthenticatedEntitiesTopicIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDataSourcesRoute: typeof AuthenticatedDataSourcesRoute
+  AuthenticatedEntitiesTopicIdRoute: typeof AuthenticatedEntitiesTopicIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDataSourcesRoute: AuthenticatedDataSourcesRoute,
+  AuthenticatedEntitiesTopicIdRoute: AuthenticatedEntitiesTopicIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
