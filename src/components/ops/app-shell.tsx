@@ -1,5 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Activity,
   BadgeCheck,
@@ -134,6 +140,45 @@ export function AppShell({ children }: { children: ReactNode }) {
       )
     : BASE_NAV;
 
+  // Which sidebar groups are expanded; user choice is remembered.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const navState = useRef({ openGroups, setOpenGroups });
+  navState.current = { openGroups, setOpenGroups };
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("opsmind-nav-groups") ?? "{}");
+      if (stored && typeof stored === "object") navState.current.setOpenGroups(stored);
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
+  useEffect(() => {
+    const current = NAV.find((section) =>
+      section.items.some((item) =>
+        item.to === "/" ? pathname === "/" : pathname.startsWith(item.to),
+      ),
+    );
+    if (!current) return;
+    setOpenGroups((prev) =>
+      prev[current.group] === true ? prev : { ...prev, [current.group]: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const toggleGroup = (group: string, open: boolean) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [group]: open };
+      try {
+        localStorage.setItem("opsmind-nav-groups", JSON.stringify(next));
+      } catch {
+        // ignore storage failures
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
@@ -147,35 +192,62 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <nav className="flex-1 space-y-5 overflow-y-auto px-2 pb-6">
-          {NAV.map((section) => (
-            <div key={section.group}>
-              <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                {section.group}
-              </p>
-              <ul className="space-y-0.5">
-                {section.items.map((item) => {
-                  const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
-                  const Icon = item.icon;
-                  return (
-                    <li key={item.to}>
-                      <Link
-                        to={item.to}
-                        className={cn(
-                          "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                          active
-                            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                        )}
-                      >
-                        <Icon className={cn("h-4 w-4", active && "text-primary")} />
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          {NAV.map((section) => {
+            const hasActiveItem = section.items.some((item) =>
+              item.to === "/" ? pathname === "/" : pathname.startsWith(item.to),
+            );
+            const defaultOpen = hasActiveItem || section.items.length <= 4;
+            const isOpen = openGroups[section.group] ?? defaultOpen;
+            const hiddenCount = !isOpen ? section.items.length : 0;
+            return (
+              <Collapsible
+                key={section.group}
+                open={isOpen}
+                onOpenChange={(open) => toggleGroup(section.group, open)}
+              >
+                <CollapsibleTrigger
+                  className={cn(
+                    "group/section flex w-full items-center justify-between gap-2 rounded-md px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  <span className="truncate">{section.group}</span>
+                  <span className="flex items-center gap-1">
+                    {hiddenCount > 0 && (
+                      <span className="rounded-full bg-sidebar-accent px-1.5 py-px text-[9px] font-medium tracking-normal normal-case text-sidebar-accent-foreground">
+                        {hiddenCount}
+                      </span>
+                    )}
+                    <ChevronDown className="h-3 w-3 shrink-0 transition-transform duration-200 group-data-[state=closed]/section:-rotate-90" />
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <ul className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const active =
+                        item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+                      const Icon = item.icon;
+                      return (
+                        <li key={item.to}>
+                          <Link
+                            to={item.to}
+                            className={cn(
+                              "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                              active
+                                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                            )}
+                          >
+                            <Icon className={cn("h-4 w-4", active && "text-primary")} />
+                            {item.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </nav>
         <div className="border-t border-sidebar-border px-4 py-3 text-[11px] text-muted-foreground">
           <p>Environment: demo</p>
