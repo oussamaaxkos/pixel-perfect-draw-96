@@ -21,14 +21,17 @@ import {
   Wrench,
   Database,
   LogOut,
+  Table2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { getActiveEntities } from "@/lib/ops/entities.functions";
 
-const NAV: Array<{
+const BASE_NAV: Array<{
   group: string;
   items: Array<{ to: string; label: string; icon: typeof Activity }>;
 }> = [
@@ -105,6 +108,31 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => setIdentity(data.user?.email ?? null));
   }, [pathname]);
+  const fetchEntities = useServerFn(getActiveEntities);
+  const entitiesQ = useQuery({
+    queryKey: ["active-entities", identity],
+    queryFn: () => fetchEntities(),
+    enabled: !!identity,
+    staleTime: 60_000,
+  });
+  const active = entitiesQ.data;
+  const NAV = active?.entities.length
+    ? BASE_NAV.map((section) =>
+        section.group === "Data"
+          ? {
+              group: `Data · ${active.sourceName}`,
+              items: [
+                { to: "/data-sources", label: "Data Sources", icon: Database },
+                ...active.entities.map((e) => ({
+                  to: `/entities/${e.id}`,
+                  label: e.name,
+                  icon: Table2,
+                })),
+              ],
+            }
+          : section,
+      )
+    : BASE_NAV;
 
   return (
     <div className="flex min-h-screen bg-background">
