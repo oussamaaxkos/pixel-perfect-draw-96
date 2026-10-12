@@ -140,6 +140,45 @@ export function AppShell({ children }: { children: ReactNode }) {
       )
     : BASE_NAV;
 
+  // Which sidebar groups are expanded; user choice is remembered.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const navState = useRef({ openGroups, setOpenGroups });
+  navState.current = { openGroups, setOpenGroups };
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("opsmind-nav-groups") ?? "{}");
+      if (stored && typeof stored === "object") navState.current.setOpenGroups(stored);
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
+  useEffect(() => {
+    const current = NAV.find((section) =>
+      section.items.some((item) =>
+        item.to === "/" ? pathname === "/" : pathname.startsWith(item.to),
+      ),
+    );
+    if (!current) return;
+    setOpenGroups((prev) =>
+      prev[current.group] === true ? prev : { ...prev, [current.group]: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const toggleGroup = (group: string, open: boolean) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [group]: open };
+      try {
+        localStorage.setItem("opsmind-nav-groups", JSON.stringify(next));
+      } catch {
+        // ignore storage failures
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
